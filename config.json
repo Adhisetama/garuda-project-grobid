@@ -1,0 +1,9 @@
+{
+    "api_host": "127.0.0.1",
+    "api_port": 3000,
+
+    "db_host": "127.0.0.1",
+    "db_name": "skripsi_original_dari_bapak",
+    "db_user": "root",
+    "db_pass": ""
+}

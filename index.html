@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body style="padding: 10px 30px;">
+
+    <!-- check api environment -->
+    <pre id="error" style="color: red;">Mencoba koneksi dengan API...</pre>
+
+    <h1 style="text-align: center;">GROBID processReference Dashboard</h1>
+
+    <hr>
+
+    <h2>Sample test for journals</h2>
+    <p>Get a random sample of 3 articles and compare the pdf file with extracted references.</p>
+    <label for="journal_id">journal_id:</label>
+    <input type="number" id="journal_id" name="journal_id">
+    <button id="test_journal">Start</button>
+    <div id="test_journal_container"></div>
+
+    <hr>
+
+    <h2>Batch download for journals</h2>
+    <p></p>
+    <label>journal_id: </label><input type="number" id="batchdl_journal_id"><br>
+    <label>save directory: </label><input type="text" id="batchdl_save_dir" style="width: 30vw;">
+        <span style="font-family: 'Courier New', Courier, monospace;" id="batchdl_dir_preview"></span><br>
+    <label>batch worker: </label><input type="number" id="batchdl_num_workers" value="5"><br>
+    <label>max download: </label><input type="number" id="batchdl_max" value="1000"><br>
+    <pre id="batchdl_command" style="padding: 5px; border-radius: 5px; border: 1px solid gray;"></pre>
+    <button id="batchdl_copy">Copy</button>
+
+
+    
+    <script>
+        // cek environment API
+        Array.from(document.querySelectorAll('input, button')).forEach(e => e.setAttribute('disabled', true))
+
+        window.api_url = 'http://127.0.0.1:3000'
+        fetch(`${window.api_url}`, { mode:"cors" })
+        .then(response => response.json())
+        .then(data => {
+            console.log(data)
+            window.api_env = data
+            if (data.errors.length !== 0) {
+                document.getElementById('error').innerText = data.errors.join('\n')
+            }
+            document.getElementById('batchdl_save_dir').setAttribute('value', window.api_env.info.cwd + '\\downloads')
+            Array.from(document.querySelectorAll('input, button')).forEach(e => e.removeAttribute('disabled'))
+        })
+        .catch(error => {
+            console.error(error)
+            document.getElementById('error').innerText = error.message + '\n' + `Hidupkan API dengan run main.py. Apabila masih error, API di set ke ${window.api_url}, cek barangkali port tidak sesuai.`
+        })
+    </script>
+
+
+    <script>
+        
+
+        // handle sample test for journal
+        {
+            
+            document.getElementById('test_journal').addEventListener('click', event => {
+                event.target.setAttribute('disabled', true)
+                fetch(
+                    `${window.api_url}/test/journal/${document.getElementById('journal_id').value}`,
+                    { mode: "cors" }
+                )
+                .then(response => {
+                    event.target.removeAttribute('disabled')
+                    return response.json()
+                })
+                .then(data => {
+                    console.log(data)
+                    initTestJournal(data)
+                })
+                .catch(e => console.error(e))
+            })
+
+
+            function initTestJournal(data) { // response dari api/test/journal
+                const container = document.getElementById('test_journal_container')
+                
+                container.innerHTML = `
+                <pre>${data.log.join('\n')}</pre>
+                <div style="display: inline-block; margin: auto;">
+                    <label>article_id</label>
+                    <select>
+                        ${data.article_id.map(e => `<option value="${e}">${e}</option>`).join('')}
+                    </select>
+                </div>
+                <div style="display: flex;">
+                    <iframe src="" width="600" height="400"></iframe>
+                    <div style="flex: 1; overflow-y: scroll; max-height: 400px">
+                        <pre class="tei"></pre>
+                    </div>
+                </div>`
+
+                container.querySelector('select').addEventListener('change', event => {
+                    container.querySelector('iframe')
+                        .setAttribute('src', `${window.api_url}/temp/pdf/${event.target.value}`)
+                    fetch(`${window.api_url}/temp/tei/${event.target.value}`, { mode:"cors" })
+                        .then(response => response.text())
+                        .then(data => container.querySelector('.tei').innerText = data)
+                        .catch(e => console.error(e))
+                })
+                
+                container.querySelector('select').dispatchEvent(new Event('change'))
+
+            }
+
+        }
+    
+    
+        // batch download for journal
+        {
+            const input_journal_id  = document.getElementById('batchdl_journal_id')
+            const input_num_workers = document.getElementById('batchdl_num_workers')
+            const input_save_dir    = document.getElementById('batchdl_save_dir')
+            const input_max         = document.getElementById('batchdl_max')
+
+            const dir_preview = document.getElementById('batchdl_dir_preview')
+            const copy_button = document.getElementById('batchdl_copy')
+
+            const output_command = document.getElementById('batchdl_command')
+            function getBatchDownloadCommand() {
+                const journal_id  = input_journal_id.value
+                const num_workers = input_num_workers.value
+                const save_dir    = `${input_save_dir.value}\\${journal_id}`
+                const max         = input_max.value
+
+                dir_preview.innerText = save_dir
+    
+                if (!journal_id || !num_workers || !save_dir || !max) 
+                    output_command.innerText = 'parameter tidak lengkap'
+                else {
+                    const command = `"${window.api_env.info.python}" "${window.api_env.info.cwd}\\batch_download_by_journal.py" ${journal_id} ${num_workers} "${save_dir}" ${max}`
+                    output_command.innerText = command
+                }
+                copy_button.innerText = 'Copy'
+            }
+
+            [ input_journal_id, input_num_workers, input_save_dir, input_max ]
+                .forEach(e => e.addEventListener('input', getBatchDownloadCommand))
+
+            copy_button.addEventListener('click', event => {
+                navigator.clipboard.writeText(output_command.innerText).then(() => {
+                    copy_button.innerText = 'Copied!'
+                }).catch(err => console.error("Failed to copy:", err))
+            })
+
+
+        }
+        
+
+    </script>
+</body>
+</html>

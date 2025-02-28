@@ -28,7 +28,7 @@ def get_conn():
 def clear_temp():
     temp_directory = f'{__dir__}/_temp/test_article'
     os.makedirs(temp_directory, exist_ok=True)
-    
+
     for file_name in os.listdir(temp_directory):
         file_path = os.path.join(temp_directory, file_name)
         if os.path.isfile(file_path):
@@ -153,6 +153,52 @@ def get_sample_pdf(journal_id):
             else:
                 return_data['log'].append(f'File for article_id={id} not found in {url}')
                 print(f'File for article_id={id} not found in {url}')
+
+    finally:
+        conn.close()
+
+    # parse with grobid
+    print('Initialize GROBID')
+    client = GrobidClient(config_path="./grobid.config.json")
+    client.process("processReferences", f'{__dir__}\\_temp\\test_article', n=20, force=False)
+
+    return return_data
+
+# ----- sample pdf from article -----
+@app.route('/test/article/<int:article_id>')
+def get_sample_article(article_id):
+
+    print(f'Downloading PDF with article_id={article_id}')
+    return_data = { "log": [] }
+
+    # download sample pdf
+    try:
+        conn = get_conn()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            'SELECT article_id, location_file FROM articles WHERE article_id = %s ORDER BY RAND() LIMIT 3', 
+            (article_id , )
+            )
+    
+        id, url = cursor.fetchone()
+
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            if 'application/pdf' in response.headers.get('Content-Type', ''):
+                file_path = f'{__dir__}/_temp/test_article/{id}.pdf'
+                with open(file_path, 'wb') as file:
+                    file.write(response.content)
+                return_data['log'].append(f'Downloaded: {id}.pdf from {url}')
+                print(f'Downloaded: {file_path} from {url}')
+            else:
+                return_data['log'].append(f'File for article_id={id} not found in {url}')
+                print(f'File for article_id={id} not found in {url}')
+
+        except requests.exceptions.RequestException as e:
+            return_data['log'].append(f'HTTP error for article_id={id} in {url}')
+            print(f'HTTP error for article_id={id} in {url}')
 
     finally:
         conn.close()

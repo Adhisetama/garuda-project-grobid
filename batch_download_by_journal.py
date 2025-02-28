@@ -1,3 +1,17 @@
+'''
+DOCUMENTATION:
+
+argv order  : <journal_id> <num_workers> <save_dir> <max_download>
+description :
+    check if theres any record in grobid_references where journal_id=journal_id,
+    if no, copy all record from articles to grobid_references where journal_id=journal_id,
+    for each record, download pdf from location_file
+
+changelog:
+    - 27/02/2024: first release
+'''
+
+
 import multiprocessing
 import requests
 import os
@@ -122,4 +136,5 @@ if __name__ == '__main__':
         num_workers  = int(num_workers)
     except:
         print('Error parsing argv. The order is: <journal_id> <num_workers> <save_dir> <max_download>')
+        exit()
     main(journal_id, num_workers, save_dir, max_download)

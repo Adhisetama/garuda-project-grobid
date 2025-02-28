@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>GROBID processReference Dashboard</title>
 </head>
 <body style="padding: 10px 30px;">
 
@@ -23,15 +23,76 @@
 
     <hr>
 
-    <h2>Batch download for journals</h2>
-    <p></p>
+    <h2>Sample test for article</h2>
+    <p>Download and run GROBID processReference on one article by article_id and compare the pdf file with extracted references.</p>
+    <label for="article_id">article_id:</label>
+    <input type="number" id="article_id" name="article_id">
+    <button id="test_article">Start</button>
+    <div id="test_article_container"></div>
+
+    <hr>
+
+    <h2>Quick Journal Pipeline</h2>
+    <p>Command preset untuk satu proses ekstraksi bibliografi jurnal</p>
+
+    <label>journal_id: </label><input type="number" id="q_journal_id"><br>
+    <label>download_dir: </label><input type="text" id="q_download_dir"><br>
+
+    <span>1. Batch download ke download_dir/journal_id</span>
+    <button id="q_copy1">Copy</button>
+    <pre id="q_command1" style="padding: 5px; border-radius: 5px; border: 1px solid gray;"></pre>
+    
+    <span>2. Ekstraksi TEI ke download_dir/journal_id/tei</span>
+    <button id="q_copy2">Copy</button>
+    <pre id="q_command2" style="padding: 5px; border-radius: 5px; border: 1px solid gray;"></pre>
+    
+    <span>3. Catat proses ekstraksi kedalam database</span>
+    <button id="q_copy3">Copy</button>
+    <pre id="q_command3" style="padding: 5px; border-radius: 5px; border: 1px solid gray;"></pre>
+
+    <hr>
+
+    <h2>1. Batch download articles in journal</h2>
+    <p>
+        check if theres any record in grobid_references where journal_id=journal_id,<br>
+        if no, copy all record from articles to grobid_references where journal_id=journal_id,<br>
+        for each record, download pdf from location_file<br>
+    </p>
     <label>journal_id: </label><input type="number" id="batchdl_journal_id"><br>
     <label>save directory: </label><input type="text" id="batchdl_save_dir" style="width: 30vw;">
-        <span style="font-family: 'Courier New', Courier, monospace;" id="batchdl_dir_preview"></span><br>
+        <span style="font-family: Consolas, monospace;" id="batchdl_dir_preview"></span><br>
     <label>batch worker: </label><input type="number" id="batchdl_num_workers" value="5"><br>
     <label>max download: </label><input type="number" id="batchdl_max" value="1000"><br>
     <pre id="batchdl_command" style="padding: 5px; border-radius: 5px; border: 1px solid gray;"></pre>
     <button id="batchdl_copy">Copy</button>
+
+    <hr>
+
+    <h2>2. Batch extract PDF to TEI/XML (processReferences)</h2>
+    <p>
+        extract all pdf inside 'input_pdf_directory' references as tei/xml using grobid.<br>
+        each {filename}.pdf will be processed into {filename}.grobid.tei.xml inside<br>
+        'output_tei_directory'<br>
+    </p>
+    <label>input directory (pdf files location): </label><input type="text" id="processref_input_dir" style="width: 30vw;"><br>
+    <label>output directory (location for extracted tei/xml): </label><input type="text" id="processref_output_dir" style="width: 30vw;">
+    <pre id="processref_command" style="padding: 5px; border-radius: 5px; border: 1px solid gray;"></pre>
+    <button id="processref_copy">Copy</button>
+
+    <hr>
+
+    <h2>3. Batch Log PDF Extraction to Database</h2>
+    <p>
+        query to database for all articles with 'journal_id',<br>
+        checks into 'tei_directory' for its extracted tei/xml file,<br>
+        determine its status (success/error) and updates article record in database.<br>
+        deletes their corresponding pdf file in 'pdf_directory'. <br>
+    </p>
+    <label>journal_id: </label><input type="number" id="todb_journal_id"><br>
+    <label>pdf directory: </label><input type="text" id="todb_pdf_dir" style="width: 30vw;"><br>
+    <label>tei/xml directory: </label><input type="text" id="todb_tei_dir" style="width: 30vw;"><br>
+    <pre id="todb_command" style="padding: 5px; border-radius: 5px; border: 1px solid gray;"></pre>
+    <button id="todb_copy">Copy</button>
 
 
     
@@ -45,15 +106,22 @@
         .then(data => {
             console.log(data)
             window.api_env = data
-            if (data.errors.length !== 0) {
+            if (data.errors.length > 0) {
                 document.getElementById('error').innerText = data.errors.join('\n')
+            } else {
+                document.getElementById('error').innerText = 'OK'
+                document.getElementById('error').style.color = 'green'
             }
             document.getElementById('batchdl_save_dir').setAttribute('value', window.api_env.info.cwd + '\\downloads')
             Array.from(document.querySelectorAll('input, button')).forEach(e => e.removeAttribute('disabled'))
         })
         .catch(error => {
             console.error(error)
-            document.getElementById('error').innerText = error.message + '\n' + `Hidupkan API dengan run main.py. Apabila masih error, API di set ke ${window.api_url}, cek barangkali port tidak sesuai.`
+            document.getElementById('error').innerText = 
+            error.message +
+            '\nHidupkan API dengan menjalankan main.py' +
+            `\nDi file ini, url API di set ke ${window.api_url}, cek barangkali port tidak sesuai.` +
+            '\nUntuk panduan lebih lanjut dalam menjalankan API, silakan cek README.txt '
         })
     </script>
 
@@ -115,7 +183,101 @@
 
         }
     
+        
+        // handle sample test for articles
+        {
+            
+            document.getElementById('test_article').addEventListener('click', event => {
+                event.target.setAttribute('disabled', true)
+                const article_id = document.getElementById('article_id').value
+                fetch(
+                    `${window.api_url}/test/article/${article_id}`,
+                    { mode: "cors" }
+                )
+                .then(response => {
+                    event.target.removeAttribute('disabled')
+                    return response.json()
+                })
+                .then(data => {
+                    console.log(data)
+                    initTestArticle({ ...data, article_id: article_id})
+                })
+                .catch(e => console.error(e))
+            })
+
+
+            function initTestArticle(data) { // response dari api/test/article
+                const container = document.getElementById('test_article_container')
+                
+                container.innerHTML = `
+                <pre>${data.log.join('\n')}</pre>
+                <div style="display: flex;">
+                    <iframe src="" width="600" height="400"></iframe>
+                    <div style="flex: 1; overflow-y: scroll; max-height: 400px">
+                        <pre class="tei"></pre>
+                    </div>
+                </div>`
+
+                container.querySelector('iframe')
+                    .setAttribute('src', `${window.api_url}/temp/pdf/${data.article_id}`)
+                fetch(`${window.api_url}/temp/tei/${data.article_id}`, { mode:"cors" })
+                    .then(response => response.text())
+                    .then(data => container.querySelector('.tei').innerText = data)
+                    .catch(e => console.error(e))
+
+            }
+
+        }
     
+
+        // handle quick journal pipeline
+        {
+            const journal_id    = document.getElementById('q_journal_id')
+            const download_dir  = document.getElementById('q_download_dir')
+
+            const copy = [
+                document.getElementById('q_copy1'),
+                document.getElementById('q_copy2'),
+                document.getElementById('q_copy3'),
+            ]
+
+            const cmd = [
+                document.getElementById('q_command1'),
+                document.getElementById('q_command2'),
+                document.getElementById('q_command3')
+            ]
+
+            function nasiGorengBabat() {
+
+                const j_id = journal_id.value
+                const d_dir = download_dir.value
+
+                const pdf_dir = `${d_dir}\\${j_id}`
+                const tei_dir = `${d_dir}\\${j_id}\\tei`
+    
+                cmd[0].innerText = `"${window.api_env.info.python}" "${window.api_env.info.cwd}\\batch_download_by_journal.py" ${j_id} 10 "${pdf_dir}" 999999`
+                cmd[1].innerText = `"${window.api_env.info.python}" "${window.api_env.info.cwd}\\batch_extract_tei_reference.py" "${pdf_dir}" "${tei_dir}"`
+                cmd[2].innerText = `"${window.api_env.info.python}" "${window.api_env.info.cwd}\\batch_tei_to_database.py" ${j_id} "${pdf_dir}" "${tei_dir}"`
+                
+                copy.forEach(e => e.innerText = 'Copy')
+
+            }
+
+            [ download_dir, journal_id ]
+                .forEach(e => e.addEventListener('input', nasiGorengBabat))
+
+            copy.forEach((e, i) => {
+
+                e.addEventListener('click', event => {
+                    navigator.clipboard.writeText(cmd[i].innerText).then(() => {
+                        e.innerText = 'Copied!'
+                    }).catch(err => console.error("Failed to copy:", err))
+                })
+
+            })
+
+        }
+
         // batch download for journal
         {
             const input_journal_id  = document.getElementById('batchdl_journal_id')
@@ -156,6 +318,70 @@
 
         }
         
+        // batch extract pdf to tei
+        {
+            const input_dir   = document.getElementById('processref_input_dir')
+            const output_dir  = document.getElementById('processref_output_dir')
+
+            const copy_button = document.getElementById('processref_copy')
+            const output_command = document.getElementById('processref_command')
+
+            function getProcessReferencesCommand() {
+    
+                if (!input_dir || !output_dir) 
+                    output_command.innerText = 'parameter tidak lengkap'
+                else {
+                    const command = `"${window.api_env.info.python}" "${window.api_env.info.cwd}\\batch_extract_tei_reference.py" "${input_dir.value}" "${output_dir.value}"`
+                    output_command.innerText = command
+                }
+                copy_button.innerText = 'Copy'
+
+            }
+
+            [ input_dir, output_dir ]
+                .forEach(e => e.addEventListener('input', getProcessReferencesCommand))
+
+            copy_button.addEventListener('click', event => {
+                navigator.clipboard.writeText(output_command.innerText).then(() => {
+                    copy_button.innerText = 'Copied!'
+                }).catch(err => console.error("Failed to copy:", err))
+            })
+
+        }
+
+        // batch log extraction to database
+        {
+            const journal_id  = document.getElementById('todb_journal_id')
+            const pdf_dir     = document.getElementById('todb_pdf_dir')
+            const tei_dir     = document.getElementById('todb_tei_dir')
+
+            const copy_button = document.getElementById('todb_copy')
+            const output_command = document.getElementById('todb_command')
+
+            function getBatchLogCommand() {
+    
+                if (!pdf_dir || !tei_dir || !journal_id) 
+                    output_command.innerText = 'parameter tidak lengkap'
+                else {
+                    const command = `"${window.api_env.info.python}" "${window.api_env.info.cwd}\\batch_tei_to_database.py" ${journal_id.value} "${pdf_dir.value}" "${tei_dir.value}"`
+                    output_command.innerText = command
+                }
+                copy_button.innerText = 'Copy'
+
+            }
+
+            [ pdf_dir, tei_dir, journal_id ]
+                .forEach(e => e.addEventListener('input', getBatchLogCommand))
+
+            copy_button.addEventListener('click', event => {
+                navigator.clipboard.writeText(output_command.innerText).then(() => {
+                    copy_button.innerText = 'Copied!'
+                }).catch(err => console.error("Failed to copy:", err))
+            })
+
+
+        }
+
 
     </script>
 </body>

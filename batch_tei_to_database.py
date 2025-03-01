@@ -9,7 +9,7 @@ description :
     deletes their corresponding pdf file in <pdf_directory>. 
 
 changelog:
-    - 27/02/2024: first release
+    - 28/02/2025: first release
 '''
 
 import os

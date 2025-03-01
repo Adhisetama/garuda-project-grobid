@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 27, 2025 at 07:49 AM
+-- Generation Time: Mar 01, 2025 at 06:39 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -30,8 +30,9 @@ SET time_zone = "+00:00";
 CREATE TABLE `grobid_references` (
   `article_id` bigint(20) NOT NULL,
   `journal_id` bigint(20) NOT NULL,
-  `pdf_downloaded` tinyint(4) NOT NULL DEFAULT 0 COMMENT '-1: error, 0: not yet, 1: yes',
-  `pdf_processed` tinyint(4) NOT NULL DEFAULT 0 COMMENT '-1: error, 0: not yet, 1: yes',
+  `location_file` mediumtext NOT NULL,
+  `pdf_downloaded` tinyint(4) NOT NULL DEFAULT 0 COMMENT '-2: unknown error, -1: not found, 0: not yet, 1: yes',
+  `pdf_processed` tinyint(4) NOT NULL DEFAULT 0 COMMENT '-2: unknown error, -1: grobid error, 0: not yet, 1: yes',
   `log` text DEFAULT NULL,
   `last_activity` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

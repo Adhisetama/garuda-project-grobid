@@ -8,7 +8,8 @@ description :
     for each record, download pdf from location_file
 
 changelog:
-    - 27/02/2024: first release
+    - 27/02/2025: first release
+    - 01/03/2025: fix: bug on HTTP error handling (table and field name in query was wrong)
 '''
 
 
@@ -63,11 +64,11 @@ def crawler(nth, num_workers, save_dir, max, queue:multiprocessing.Queue):
                 queue.put(f'crawler-{nth}: | count:{i} | ERROR: No PDF file found in article_id={id}')
             conn.commit()
         except requests.exceptions.RequestException as e:
-            cursor.execute(f'UPDATE articles SET pdf = -1 WHERE article_id = {id}')
+            cursor.execute(f'UPDATE grobid_references SET pdf_downloaded = -1 WHERE article_id = {id}')
             queue.put(f'crawler-{nth}: | count:{i} | ERROR: HTTP request error in article_id={id}')
             conn.commit()
         except Exception as e:
-            cursor.execute(f'UPDATE articles SET pdf = -2 WHERE article_id = {id}')
+            cursor.execute(f'UPDATE grobid_references SET pdf_downloaded = -2 WHERE article_id = {id}')
             queue.put(f'crawler-{nth}: | count:{i} | ERROR: Unknown error in article_id={id}')
             conn.rollback() 
     queue.put('__END__')

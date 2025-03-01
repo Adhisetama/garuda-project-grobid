@@ -8,8 +8,8 @@ description :
     <output_tei_directory>
 
 changelog:
-    - 27/02/2024: first release
-    - 28/02/2024: fix absolute path error on GrobidClient's config_path
+    - 27/02/2025: first release
+    - 28/02/2025: fix absolute path error on GrobidClient's config_path
 '''
 
 import os

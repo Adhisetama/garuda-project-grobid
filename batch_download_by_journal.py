@@ -64,7 +64,7 @@ def crawler(nth, num_workers, save_dir, max, queue:multiprocessing.Queue):
                 queue.put(f'crawler-{nth}: | count:{i} | ERROR: No PDF file found in article_id={id}')
             conn.commit()
         except requests.exceptions.RequestException as e:
-            cursor.execute(f'UPDATE grobid_references SET pdf_downloaded = -1 WHERE article_id = {id}')
+            cursor.execute(f'UPDATE grobid_references SET pdf_downloaded = -2 WHERE article_id = {id}')
             queue.put(f'crawler-{nth}: | count:{i} | ERROR: HTTP request error in article_id={id}')
             conn.commit()
         except Exception as e:

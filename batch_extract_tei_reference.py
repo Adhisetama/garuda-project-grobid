@@ -10,6 +10,7 @@ description :
 changelog:
     - 27/02/2025: first release
     - 28/02/2025: fix absolute path error on GrobidClient's config_path
+    - 01/03/2025: add makedirs before initializing grobid
 '''
 
 import os
@@ -22,6 +23,8 @@ in_path, out_path = sys.argv[1:]
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 
+os.makedirs(out_path, exist_ok=True)
+
 client = GrobidClient(config_path=f"{__dir__}/grobid.config.json")
 client.process(
     service="processReferences", 
@@ -29,5 +32,6 @@ client.process(
     output=out_path,
     include_raw_citations=True,
     n=20,
-    force=False
+    force=False,
+    verbose=True
 )
